@@ -4,10 +4,16 @@ using UnityEngine;
 
 public class RoomFirstGenerator : SimpleRandomWalkGenerator
 {
-    [SerializeField] private int minRoomWidth = 4;
-    [SerializeField] private int minRoomHeight = 4;
-    [SerializeField] private int dungeonWidth = 20;
-    [SerializeField] private int dungeonHeight = 20;
+    [SerializeField] public int minRoomWidth = 4;
+    [SerializeField] public int minRoomHeight = 4;
+    [SerializeField] public int maxRoomWidth = 20;
+    [SerializeField] public int maxRoomHeight = 20;
+    [SerializeField] [Range(10, 100)] public int dungeonWidth = 20;
+    [SerializeField] [Range(10, 100)] public int dungeonHeight = 20;
+    [SerializeField] public int minRoomCount = 5;
+    [SerializeField] public int maxRoomCount = 10;
+    [SerializeField] public int minHallSize = 10;
+    [SerializeField] public int maxHallSize = 100;
     [SerializeField] [Range(0, 10)] private int offset = 1;
     [SerializeField] private bool randomWalkRooms = false;
 
@@ -18,7 +24,7 @@ public class RoomFirstGenerator : SimpleRandomWalkGenerator
 
     private void CreateRooms() {
         var roomsList = ProceduralGenerationAlgorithms.BinarySpacePartitioning(
-            new BoundsInt((Vector3Int)startPosition, new Vector3Int(dungeonWidth, dungeonHeight, 0)), minRoomWidth, minRoomHeight);
+            new BoundsInt((Vector3Int)startPosition, new Vector3Int(dungeonWidth, dungeonHeight, 0)), minRoomWidth, minRoomHeight, maxRoomWidth, maxRoomHeight, minRoomCount, maxRoomCount);
         
         var floorPositions = new HashSet<Vector2Int>();
         if (randomWalkRooms) {
@@ -31,7 +37,7 @@ public class RoomFirstGenerator : SimpleRandomWalkGenerator
         foreach (var room in roomsList) {
             roomCenters.Add((Vector2Int)Vector3Int.RoundToInt(room.center));
         }
-        HashSet<Vector2Int> corridors = ConnectRooms(roomCenters);
+        HashSet<Vector2Int> corridors = ConnectRooms(roomCenters, minHallSize, maxHallSize);
         floorPositions.UnionWith(corridors);
         tilemapVisualizer.Visualize(floorPositions);
         WallGenerator.CreateWalls(floorPositions, tilemapVisualizer);
@@ -66,17 +72,19 @@ public class RoomFirstGenerator : SimpleRandomWalkGenerator
         return floorPositions;
     }
 
-    private HashSet<Vector2Int> ConnectRooms(List<Vector2Int> roomCenters) {
+    private HashSet<Vector2Int> ConnectRooms(List<Vector2Int> roomCenters, int minHallSize, int maxHallSize) {
         var corridors = new HashSet<Vector2Int>();
         var currentRoomCenter = roomCenters[Random.Range(0, roomCenters.Count)];
         roomCenters.Remove(currentRoomCenter);
 
         while (roomCenters.Count > 0 ) {
             Vector2Int closest = FindClosestPointTo(currentRoomCenter, roomCenters);
-            roomCenters.Remove(closest);
             HashSet<Vector2Int> newCorridor = CreateCorridor(currentRoomCenter, closest);
+            roomCenters.Remove(closest);
             currentRoomCenter = closest;
-            corridors.UnionWith(newCorridor);
+            if (newCorridor.Count <= maxHallSize && newCorridor.Count >= minHallSize) {
+                corridors.UnionWith(newCorridor);
+            }
         }
         return corridors;
     }

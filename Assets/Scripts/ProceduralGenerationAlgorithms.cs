@@ -33,12 +33,12 @@ public static class ProceduralGenerationAlgorithms
         return corridor;
     }
 
-    public static List<BoundsInt> BinarySpacePartitioning(BoundsInt spaceToSplit, int minWidth, int minHeight) {
+    public static List<BoundsInt> BinarySpacePartitioning(BoundsInt spaceToSplit, int minWidth, int minHeight, int maxWidth, int maxHeight, int minRoomCount, int maxRoomCount) {
         var roomsQueue = new Queue<BoundsInt>();
         var roomsList = new List<BoundsInt>();
         roomsQueue.Enqueue(spaceToSplit);
 
-        while (roomsQueue.Count > 0) {
+        while (roomsQueue.Count > 0 && roomsList.Count < maxRoomCount) {
             var room = roomsQueue.Dequeue();
             if (room.size.y >= minHeight && room.size.x >= minWidth) {
                 if (Random.value < 0.5f) {
@@ -48,7 +48,7 @@ public static class ProceduralGenerationAlgorithms
                     else if (room.size.x >= minWidth * 2) {
                         SplitVertically(minHeight, roomsQueue, room);
                     }
-                    else {
+                    else if (room.size.x <= maxWidth && room.size.y <= maxHeight) {
                         roomsList.Add(room);
                     }
                 }
@@ -59,9 +59,14 @@ public static class ProceduralGenerationAlgorithms
                     else if (room.size.y >= minHeight * 2) {
                         SplitHorizontally(minWidth, roomsQueue, room);
                     }
-                    else {
+                    else if (room.size.x <= maxWidth && room.size.y <= maxHeight) {
                         roomsList.Add(room);
                     }
+                }
+            }
+            if (roomsList.Count >= minRoomCount) {
+                if (Random.value < 0.1f) {
+                    return roomsList;
                 }
             }
         }
